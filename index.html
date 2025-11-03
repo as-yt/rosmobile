@@ -1,0 +1,841 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Росмобайл — Оформление SIM-карты</title>
+  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-database-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-storage-compat.js"></script>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    }
+    body {
+      background: linear-gradient(135deg, #f5f7fa 0%, #e4edf9 100%);
+      color: #2d3748;
+      line-height: 1.6;
+    }
+    .container {
+      max-width: 1100px;
+      margin: 0 auto;
+      padding: 20px;
+    }
+    header {
+      text-align: center;
+      padding: 20px;
+      background: linear-gradient(to right, #0057b8, #003f88);
+      color: white;
+      border-radius: 12px;
+      margin-bottom: 30px;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    }
+    header h1 {
+      font-size: 2.2em;
+      font-weight: 700;
+    }
+    .logo {
+      font-size: 1.1em;
+      opacity: 0.9;
+      margin-top: 8px;
+    }
+    .screen {
+      display: none;
+      background: white;
+      padding: 25px;
+      border-radius: 12px;
+      box-shadow: 0 6px 20px rgba(0, 0, 0, 0.08);
+    }
+    .active {
+      display: block;
+      animation: fadeIn 0.4s ease;
+    }
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(10px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    .form-group {
+      margin: 18px 0;
+    }
+    label {
+      display: block;
+      margin-bottom: 8px;
+      font-weight: 600;
+      color: #2c3e50;
+    }
+    input, select, button, textarea {
+      width: 100%;
+      padding: 14px;
+      font-size: 16px;
+      border: 1px solid #cbd5e0;
+      border-radius: 8px;
+      transition: border-color 0.3s, box-shadow 0.3s;
+    }
+    input:focus, select:focus {
+      outline: none;
+      border-color: #0057b8;
+      box-shadow: 0 0 0 3px rgba(0, 87, 184, 0.15);
+    }
+    button {
+      background: linear-gradient(to right, #0057b8, #004494);
+      color: white;
+      border: none;
+      cursor: pointer;
+      font-weight: 600;
+      font-size: 16px;
+      transition: background 0.3s, transform 0.1s;
+      margin-top: 10px;
+    }
+    button:hover {
+      background: linear-gradient(to right, #004494, #003a7a);
+    }
+    button:active {
+      transform: scale(0.99);
+    }
+    .btn-success {
+      background: linear-gradient(to right, #28a745, #218838);
+    }
+    .btn-success:hover {
+      background: linear-gradient(to right, #218838, #1e7e34);
+    }
+    .btn-warning {
+      background: linear-gradient(to right, #ffc107, #e0a800);
+      color: #212529;
+    }
+    .btn-warning:hover {
+      background: linear-gradient(to right, #e0a800, #d39e00);
+    }
+    .error {
+      color: #e53e3e;
+      margin-top: 10px;
+      padding: 10px;
+      background: #fff5f5;
+      border-radius: 6px;
+      font-weight: 500;
+    }
+    .success {
+      color: #28a745;
+      margin-top: 10px;
+      padding: 10px;
+      background: #f6fff6;
+      border-radius: 6px;
+      font-weight: 500;
+    }
+    .hidden {
+      display: none !important;
+    }
+    .receipt {
+      background: white;
+      padding: 25px;
+      border: 1px dashed #4a5568;
+      margin: 25px 0;
+      font-family: 'Courier New', monospace;
+      white-space: pre-line;
+      border-radius: 8px;
+      box-shadow: inset 0 0 10px rgba(0,0,0,0.05);
+    }
+    .barcode-display {
+      height: 100px;
+      background: white;
+      border: 2px solid #000;
+      margin: 20px 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-family: 'Libre Barcode 39', sans-serif;
+      font-size: 24px;
+      letter-spacing: 3px;
+    }
+    .hotkey-hint {
+      background: #fff8e1;
+      padding: 12px;
+      border-radius: 8px;
+      margin: 20px 0;
+      border-left: 4px solid #ffc107;
+      font-size: 15px;
+      color: #5f5f5f;
+    }
+    .file-upload-box {
+      border: 2px dashed #0057b8;
+      padding: 25px;
+      text-align: center;
+      margin: 20px 0;
+      border-radius: 10px;
+      background: #f8fbff;
+    }
+    .file-upload-box img {
+      max-width: 100%;
+      max-height: 350px;
+      margin-top: 15px;
+      border-radius: 6px;
+      display: none;
+    }
+    .step-indicator {
+      display: flex;
+      justify-content: space-between;
+      margin-bottom: 25px;
+      padding: 0 10px;
+    }
+    .step {
+      text-align: center;
+      flex: 1;
+      padding: 10px;
+      font-size: 14px;
+      color: #718096;
+    }
+    .step.active-step {
+      color: #0057b8;
+      font-weight: bold;
+    }
+    .step::before {
+      content: '●';
+      display: block;
+      font-size: 24px;
+      margin-bottom: 5px;
+    }
+    .step.completed::before {
+      content: '✓';
+      color: #28a745;
+    }
+    footer {
+      text-align: center;
+      margin-top: 30px;
+      color: #718096;
+      font-size: 14px;
+    }
+  </style>
+  <link href="https://fonts.googleapis.com/css2?family=Libre+Barcode+39&display=swap" rel="stylesheet">
+</head>
+<body>
+  <div class="container">
+    <header>
+      <h1>Росмобайл</h1>
+      <div class="logo">Система оформления SIM-карт</div>
+    </header>
+
+    <!-- ЭКРАН ВХОДА -->
+    <div id="loginScreen" class="screen active">
+      <h2>Вход для сотрудника</h2>
+      <div class="form-group">
+        <label for="employeeSelect">Выберите сотрудника</label>
+        <select id="employeeSelect">
+          <option value="">— Не выбрано —</option>
+          <option value="kirill">Кирилл</option>
+          <option value="ekaterina">Екатерина</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label for="passwordInput">Пароль</label>
+        <input type="password" id="passwordInput" placeholder="Введите пароль" autocomplete="off" />
+      </div>
+      <button onclick="handleLogin()">Войти в систему</button>
+      <div id="loginErrorMessage" class="error hidden"></div>
+    </div>
+
+    <!-- ОСНОВНОЙ ЭКРАН -->
+    <div id="mainScreen" class="screen">
+      <div class="step-indicator">
+        <div id="step-client" class="step">Клиент</div>
+        <div id="step-passport" class="step">Паспорт</div>
+        <div id="step-tariff" class="step">Тариф</div>
+        <div id="step-sim" class="step">SIM</div>
+        <div id="step-payment" class="step">Оплата</div>
+      </div>
+
+      <div class="hotkey-hint">
+        <strong>Горячие клавиши:</strong> 
+        <kbd>Shift</kbd> — ручной ввод, 
+        <kbd>Ctrl</kbd> — сканирование, 
+        <kbd>F2</kbd> — печать чека
+      </div>
+
+      <!-- ШАГ 1: КЛИЕНТ -->
+      <div id="clientStep" class="step-content">
+        <h2>Регистрация или поиск клиента</h2>
+        <div class="form-group">
+          <label>Номер телефона (7XXXXXXXXXX)</label>
+          <input type="text" id="clientPhoneInput" placeholder="Пример: 79123456789" maxlength="11" />
+        </div>
+        <button onclick="searchOrCreateClient()">Найти или создать клиента</button>
+        <div id="clientSearchError" class="error hidden"></div>
+      </div>
+
+      <!-- ФОРМА НОВОГО КЛИЕНТА -->
+      <div id="newClientForm" class="hidden">
+        <h3>Новые данные клиента</h3>
+        <div class="form-group">
+          <label>ФИО полностью</label>
+          <input type="text" id="clientFullName" placeholder="Иванов Иван Иванович" />
+        </div>
+        <div class="form-group">
+          <label>Серия паспорта (4 цифры)</label>
+          <input type="text" id="clientPassportSeries" maxlength="4" placeholder="4507" />
+        </div>
+        <div class="form-group">
+          <label>Номер паспорта (6 цифр)</label>
+          <input type="text" id="clientPassportNumber" maxlength="6" placeholder="123456" />
+        </div>
+        <div class="form-group">
+          <label>Email (опционально)</label>
+          <input type="email" id="clientEmail" placeholder="ivanov@example.com" />
+        </div>
+        <div class="form-group">
+          <label>Регион</label>
+          <input type="text" id="clientRegion" placeholder="Московская область" />
+        </div>
+        <div class="form-group">
+          <label>Город</label>
+          <input type="text" id="clientCity" placeholder="Москва" />
+        </div>
+        <div class="form-group">
+          <label>Улица</label>
+          <input type="text" id="clientStreet" placeholder="Ленина" />
+        </div>
+        <div class="form-group">
+          <label>Дом</label>
+          <input type="text" id="clientHouse" placeholder="32" />
+        </div>
+        <div class="form-group">
+          <label>Подъезд</label>
+          <input type="text" id="clientEntrance" placeholder="2" />
+        </div>
+        <div class="form-group">
+          <label>Этаж</label>
+          <input type="text" id="clientFloor" placeholder="5" />
+        </div>
+        <div class="form-group">
+          <label>Квартира</label>
+          <input type="text" id="clientApartment" placeholder="45" />
+        </div>
+        <button class="btn-success" onclick="saveNewClient()">Сохранить клиента</button>
+        <div id="newClientError" class="error hidden"></div>
+      </div>
+
+      <!-- ШАГ 2: ЗАГРУЗКА ПАСПОРТА -->
+      <div id="passportStep" class="hidden">
+        <h2>Скан паспорта клиента</h2>
+        <div class="file-upload-box">
+          <p>Загрузите изображение первой страницы паспорта</p>
+          <input type="file" id="passportFileInput" accept="image/*" onchange="previewPassportImage()" />
+          <img id="passportPreviewImage" />
+        </div>
+        <button class="btn-success" onclick="uploadPassportToStorage()">Загрузить паспорт</button>
+        <div id="passportUploadStatus" class="success hidden"></div>
+      </div>
+
+      <!-- ШАГ 3: ВЫБОР ТАРИФА -->
+      <div id="tariffStep" class="hidden">
+        <h2>Выберите тарифный план</h2>
+        <div class="form-group">
+          <select id="tariffSelector">
+            <option value="">— Выберите тариф —</option>
+            <option value="tariff_001">Тарифище: 30 ГБ, 900 минут, 200 СМС — 1000 ₽/мес</option>
+            <option value="tariff_002">Мало: 10 ГБ, 100 минут, 10 СМС — 250 ₽/мес</option>
+            <option value="tariff_003">Любимый: 50 ГБ, 2000 минут, 1000 СМС — 2000 ₽/мес</option>
+            <option value="tariff_004">Мобайл: 100 ГБ, 5000 минут, 5000 СМС — 10000 ₽/мес</option>
+          </select>
+        </div>
+        <button onclick="selectTariff()">Подтвердить выбор тарифа</button>
+        <div id="tariffError" class="error hidden"></div>
+      </div>
+
+      <!-- ШАГ 4: НОМЕР И SIM -->
+      <div id="simStep" class="hidden">
+        <h2>Назначение номера и SIM-карты</h2>
+        <div class="form-group">
+          <label>Свободный номер</label>
+          <input type="text" id="assignedPhoneNumber" readonly placeholder="Будет назначен автоматически" />
+        </div>
+        <button onclick="assignFreePhoneNumber()">Получить номер</button>
+
+        <h3 style="margin-top: 25px;">Сканирование упаковки SIM-карты</h3>
+        <div class="hotkey-hint">
+          Используйте сканер или введите 13-значный код вручную
+        </div>
+        <input type="text" id="simPackageCode" maxlength="13" placeholder="13-значный код с упаковки" oninput="processSIMInput()" />
+        <div id="simProcessingStatus"></div>
+      </div>
+
+      <!-- ШАГ 5: ОПЛАТА -->
+      <div id="paymentStep" class="hidden">
+        <h2>Оплата услуги</h2>
+        <div class="form-group">
+          <label>Сумма к оплате: <strong id="paymentAmountDisplay">0</strong> ₽</label>
+        </div>
+        <div class="form-group">
+          <label>Способ оплаты</label>
+          <select id="paymentMethodSelector" onchange="toggleCashInput()">
+            <option value="cash">Наличные</option>
+            <option value="card">Банковская карта</option>
+          </select>
+        </div>
+        <div id="cashInputBlock" class="hidden">
+          <div class="form-group">
+            <label>Сумма внесена (наличные)</label>
+            <input type="number" id="cashAmountInput" placeholder="1000" oninput="calculateChange()" />
+          </div>
+          <div class="form-group">
+            <label>Сдача: <strong id="changeAmountDisplay">0</strong> ₽</label>
+          </div>
+        </div>
+        <button class="btn-success" onclick="completeOrder()">Завершить оформление</button>
+      </div>
+
+      <!-- ФИНАЛЬНЫЙ ЭКРАН: ПЕЧАТЬ -->
+      <div id="printStep" class="hidden">
+        <h2>Печать документов</h2>
+        <div class="barcode-display" id="generatedBarcode">|||ROS-SIM-1234567890|||</div>
+        <div class="receipt" id="generatedReceipt"></div>
+        <button class="btn-warning" onclick="triggerPrint()">Печать (F2)</button>
+        <button onclick="resetWorkflow()">Оформить новую SIM</button>
+      </div>
+    </div>
+
+    <footer>
+      Система «Росмобайл» — версия 1.0 | ООО «Росмобайл», ИНН 7701234567
+    </footer>
+  </div>
+
+  <script>
+    // =============== ИНИЦИАЛИЗАЦИЯ FIREBASE ===============
+    const firebaseConfig = {
+      apiKey: "AIzaSyC...", // ЗАМЕНИ НА СВОЙ API KEY ИЗ FIREBASE CONSOLE
+      authDomain: "renessans-bank-3df94.firebaseapp.com",
+      databaseURL: "https://renessans-bank-3df94-default-rtdb.europe-west1.firebasedatabase.app",
+      storageBucket: "renessans-bank-3df94.appspot.com"
+    };
+
+    try {
+      firebase.initializeApp(firebaseConfig);
+      console.log("Firebase успешно инициализирован");
+    } catch (error) {
+      console.error("Ошибка инициализации Firebase:", error);
+      alert("Ошибка подключения к базе данных. Проверьте конфигурацию.");
+    }
+
+    const db = firebase.database();
+    const storage = firebase.storage();
+
+    // =============== ГЛОБАЛЬНЫЕ ПЕРЕМЕННЫЕ ===============
+    let currentEmployee = null;
+    let currentClientId = null;
+    let currentClientData = null;
+    let selectedTariff = null;
+    let assignedPhoneNumber = null;
+    let simPackageCode = null;
+
+    // =============== ФУНКЦИИ АВТОРИЗАЦИИ ===============
+    function handleLogin() {
+      const employeeId = document.getElementById('employeeSelect').value;
+      const password = document.getElementById('passwordInput').value;
+      const errorDiv = document.getElementById('loginErrorMessage');
+
+      if (!employeeId || !password) {
+        showError(errorDiv, "Пожалуйста, выберите сотрудника и введите пароль");
+        return;
+      }
+
+      db.ref('employees/' + employeeId).once('value')
+        .then(snapshot => {
+          const employee = snapshot.val();
+          if (employee && employee.password === password) {
+            currentEmployee = employeeId;
+            document.getElementById('loginScreen').classList.remove('active');
+            document.getElementById('mainScreen').classList.add('active');
+            console.log(`Вошёл сотрудник: ${employeeId}`);
+          } else {
+            showError(errorDiv, "Неверный пароль. Попробуйте снова.");
+          }
+        })
+        .catch(error => {
+          console.error("Ошибка входа:", error);
+          showError(errorDiv, "Ошибка подключения. Повторите попытку.");
+        });
+    }
+
+    function showError(element, message) {
+      element.textContent = message;
+      element.classList.remove('hidden');
+    }
+
+    function hideError(element) {
+      element.classList.add('hidden');
+    }
+
+    // =============== ФУНКЦИИ РАБОТЫ С КЛИЕНТОМ ===============
+    function searchOrCreateClient() {
+      const phone = document.getElementById('clientPhoneInput').value.trim();
+      const errorDiv = document.getElementById('clientSearchError');
+
+      if (!/^7\d{10}$/.test(phone)) {
+        showError(errorDiv, "Номер должен быть в формате 7XXXXXXXXXX (11 цифр)");
+        return;
+      }
+
+      hideError(errorDiv);
+      showStepIndicator('client');
+
+      db.ref('clients').orderByChild('phone').equalTo(phone).once('value')
+        .then(snapshot => {
+          if (snapshot.exists()) {
+            const clients = snapshot.val();
+            const clientId = Object.keys(clients)[0];
+            currentClientId = clientId;
+            currentClientData = clients[clientId];
+            console.log("Клиент найден:", currentClientId);
+            showStep('passportStep');
+          } else {
+            currentClientId = 'client_' + Date.now();
+            document.getElementById('newClientForm').classList.remove('hidden');
+            document.getElementById('clientPhoneInput').value = phone;
+          }
+        })
+        .catch(error => {
+          console.error("Ошибка поиска клиента:", error);
+          showError(errorDiv, "Ошибка при поиске клиента. Повторите попытку.");
+        });
+    }
+
+    function saveNewClient() {
+      const fullName = document.getElementById('clientFullName').value.trim();
+      const series = document.getElementById('clientPassportSeries').value.trim();
+      const number = document.getElementById('clientPassportNumber').value.trim();
+      const errorDiv = document.getElementById('newClientError');
+
+      if (!fullName || !series || !number) {
+        showError(errorDiv, "Поля ФИО, серия и номер паспорта обязательны");
+        return;
+      }
+
+      const clientData = {
+        fullName: fullName,
+        phone: document.getElementById('clientPhoneInput').value.trim(),
+        passportSeries: series,
+        passportNumber: number,
+        email: document.getElementById('clientEmail').value.trim() || null,
+        address: {
+          region: document.getElementById('clientRegion').value.trim() || null,
+          city: document.getElementById('clientCity').value.trim() || null,
+          street: document.getElementById('clientStreet').value.trim() || null,
+          house: document.getElementById('clientHouse').value.trim() || null,
+          entrance: document.getElementById('clientEntrance').value.trim() || null,
+          floor: document.getElementById('clientFloor').value.trim() || null,
+          apartment: document.getElementById('clientApartment').value.trim() || null
+        },
+        createdAt: firebase.database.ServerValue.TIMESTAMP
+      };
+
+      db.ref('clients/' + currentClientId).set(clientData)
+        .then(() => {
+          currentClientData = clientData;
+          document.getElementById('newClientForm').classList.add('hidden');
+          showStep('passportStep');
+        })
+        .catch(error => {
+          console.error("Ошибка сохранения клиента:", error);
+          showError(errorDiv, "Не удалось сохранить клиента. Повторите попытку.");
+        });
+    }
+
+    // =============== ЗАГРУЗКА ПАСПОРТА ===============
+    function previewPassportImage() {
+      const fileInput = document.getElementById('passportFileInput');
+      const preview = document.getElementById('passportPreviewImage');
+      const file = fileInput.files[0];
+
+      if (file) {
+        const reader = new FileReader();
+        reader.onload = function(e) {
+          preview.src = e.target.result;
+          preview.style.display = 'block';
+        };
+        reader.readAsDataURL(file);
+      }
+    }
+
+    function uploadPassportToStorage() {
+      const fileInput = document.getElementById('passportFileInput');
+      const file = fileInput.files[0];
+      const statusDiv = document.getElementById('passportUploadStatus');
+
+      if (!file) {
+        alert("Выберите файл для загрузки");
+        return;
+      }
+
+      const filePath = `passports/${currentClientId}/${Date.now()}_${file.name}`;
+      const uploadTask = storage.ref(filePath).put(file);
+
+      uploadTask.on('state_changed',
+        null,
+        (error) => {
+          console.error("Ошибка загрузки:", error);
+          alert("Не удалось загрузить паспорт. Проверьте подключение.");
+        },
+        () => {
+          statusDiv.textContent = "Паспорт успешно загружен!";
+          statusDiv.classList.remove('hidden');
+          setTimeout(() => showStep('tariffStep'), 800);
+        }
+      );
+    }
+
+    // =============== ВЫБОР ТАРИФА ===============
+    function selectTariff() {
+      selectedTariff = document.getElementById('tariffSelector').value;
+      const errorDiv = document.getElementById('tariffError');
+
+      if (!selectedTariff) {
+        showError(errorDiv, "Пожалуйста, выберите тарифный план");
+        return;
+      }
+
+      hideError(errorDiv);
+      showStep('simStep');
+    }
+
+    // =============== НОМЕР И SIM ===============
+    function assignFreePhoneNumber() {
+      db.ref('availableNumbers').orderByValue().equalTo(true).limitToFirst(1).once('value')
+        .then(snapshot => {
+          if (snapshot.exists()) {
+            const numbers = snapshot.val();
+            const number = Object.keys(numbers)[0];
+            assignedPhoneNumber = number;
+            document.getElementById('assignedPhoneNumber').value = number;
+            db.ref('availableNumbers/' + number).set(false);
+            console.log("Назначен номер:", number);
+          } else {
+            alert("Нет свободных номеров! Обратитесь к администратору.");
+          }
+        })
+        .catch(error => {
+          console.error("Ошибка назначения номера:", error);
+          alert("Не удалось назначить номер. Повторите попытку.");
+        });
+    }
+
+    function processSIMInput() {
+      const input = document.getElementById('simPackageCode').value.trim();
+      const statusDiv = document.getElementById('simProcessingStatus');
+
+      if (input.length === 13) {
+        db.ref('simStock/' + input).once('value')
+          .then(snapshot => {
+            if (snapshot.exists() && snapshot.val().status === 'available') {
+              simPackageCode = input;
+              db.ref('simStock/' + input).update({ status: 'reserved' });
+              statusDiv.innerHTML = '<span style="color:green; font-weight:bold;">✅ SIM-карта найдена и зарезервирована</span>';
+              setTimeout(() => {
+                const tariffPrices = {
+                  'tariff_001': 1000,
+                  'tariff_002': 250,
+                  'tariff_003': 2000,
+                  'tariff_004': 10000
+                };
+                const amount = tariffPrices[selectedTariff] || 0;
+                document.getElementById('paymentAmountDisplay').textContent = amount;
+                showStep('paymentStep');
+              }, 600);
+            } else {
+              statusDiv.innerHTML = '<span style="color:red;">❌ Barcode не найден в базе</span>';
+              document.getElementById('simPackageCode').value = '';
+            }
+          })
+          .catch(error => {
+            console.error("Ошибка проверки SIM:", error);
+            statusDiv.innerHTML = '<span style="color:red;">Ошибка соединения с базой</span>';
+          });
+      }
+    }
+
+    // =============== ОПЛАТА ===============
+    function toggleCashInput() {
+      const method = document.getElementById('paymentMethodSelector').value;
+      const cashBlock = document.getElementById('cashInputBlock');
+      if (method === 'cash') {
+        cashBlock.classList.remove('hidden');
+      } else {
+        cashBlock.classList.add('hidden');
+        document.getElementById('cashAmountInput').value = '';
+        document.getElementById('changeAmountDisplay').textContent = '0';
+      }
+    }
+
+    function calculateChange() {
+      const given = parseFloat(document.getElementById('cashAmountInput').value) || 0;
+      const amount = parseFloat(document.getElementById('paymentAmountDisplay').textContent) || 0;
+      const change = Math.max(0, given - amount);
+      document.getElementById('changeAmountDisplay').textContent = change;
+    }
+
+    // =============== ЗАВЕРШЕНИЕ ЗАКАЗА ===============
+    function completeOrder() {
+      const paymentMethod = document.getElementById('paymentMethodSelector').value;
+      const amount = parseFloat(document.getElementById('paymentAmountDisplay').textContent);
+      let cashGiven = 0;
+      let change = 0;
+
+      if (paymentMethod === 'cash') {
+        cashGiven = parseFloat(document.getElementById('cashAmountInput').value) || 0;
+        if (cashGiven < amount) {
+          alert("Недостаточно средств для оплаты!");
+          return;
+        }
+        change = cashGiven - amount;
+      }
+
+      // Сохраняем SIM-карту
+      const simData = {
+        clientId: currentClientId,
+        phoneNumber: assignedPhoneNumber,
+        tariffId: selectedTariff,
+        simCode: simPackageCode,
+        status: 'active',
+        payment: {
+          method: paymentMethod,
+          amount: amount,
+          cashGiven: cashGiven,
+          change: change
+        },
+        assignedBy: currentEmployee,
+        activatedAt: firebase.database.ServerValue.TIMESTAMP
+      };
+
+      db.ref('simCards').push(simData)
+        .then(() => {
+          generateDocuments();
+          showStep('printStep');
+        })
+        .catch(error => {
+          console.error("Ошибка сохранения SIM:", error);
+          alert("Не удалось завершить оформление. Повторите попытку.");
+        });
+    }
+
+    function generateDocuments() {
+      const tariffNames = {
+        'tariff_001': 'Тарифище',
+        'tariff_002': 'Мало',
+        'tariff_003': 'Любимый',
+        'tariff_004': 'Мобайл'
+      };
+
+      const receiptText = `
+                ООО «Росмобайл»
+               ИНН 7701234567
+----------------------------------------
+Клиент: ${currentClientData.fullName}
+Номер: +${assignedPhoneNumber}
+Тариф: ${tariffNames[selectedTariff] || selectedTariff}
+Сумма: ${document.getElementById('paymentAmountDisplay').textContent} ₽
+Оплата: ${document.getElementById('paymentMethodSelector').value === 'cash' ? 'Наличные' : 'Карта'}
+${document.getElementById('paymentMethodSelector').value === 'cash' ? `Внесено: ${document.getElementById('cashAmountInput').value} ₽\nСдача: ${document.getElementById('changeAmountDisplay').textContent} ₽` : ''}
+----------------------------------------
+Дата: ${new Date().toLocaleString('ru-RU')}
+Кассир: ${currentEmployee}
+        `.trim();
+
+      document.getElementById('generatedReceipt').textContent = receiptText;
+      document.getElementById('generatedBarcode').textContent = `|||ROS-${assignedPhoneNumber}-${Date.now().toString().slice(-6)}|||`;
+    }
+
+    // =============== НАВИГАЦИЯ ПО ШАГАМ ===============
+    function showStep(stepId) {
+      const steps = ['clientStep', 'passportStep', 'tariffStep', 'simStep', 'paymentStep', 'printStep'];
+      steps.forEach(id => document.getElementById(id).classList.add('hidden'));
+      document.getElementById(stepId).classList.remove('hidden');
+      
+      // Обновляем индикатор шагов
+      const stepMap = {
+        'clientStep': 'client',
+        'passportStep': 'passport',
+        'tariffStep': 'tariff',
+        'simStep': 'sim',
+        'paymentStep': 'payment'
+      };
+      const currentStepKey = stepMap[stepId];
+      if (currentStepKey) showStepIndicator(currentStepKey);
+    }
+
+    function showStepIndicator(activeStep) {
+      const steps = ['client', 'passport', 'tariff', 'sim', 'payment'];
+      steps.forEach(step => {
+        const el = document.getElementById(`step-${step}`);
+        el.classList.remove('active-step', 'completed');
+        if (steps.indexOf(step) < steps.indexOf(activeStep)) {
+          el.classList.add('completed');
+        } else if (step === activeStep) {
+          el.classList.add('active-step');
+        }
+      });
+    }
+
+    function triggerPrint() {
+      window.print();
+    }
+
+    function resetWorkflow() {
+      location.reload();
+    }
+
+    // =============== ГОРЯЧИЕ КЛАВИШИ ===============
+    document.addEventListener('keydown', function(e) {
+      if (e.key === 'F2') {
+        e.preventDefault();
+        if (!document.getElementById('printStep').classList.contains('hidden')) {
+          triggerPrint();
+        }
+      }
+      if (e.shiftKey && e.key.length === 1) {
+        const simInput = document.getElementById('simPackageCode');
+        if (simInput && !document.getElementById('simStep').classList.contains('hidden')) {
+          setTimeout(() => simInput.focus(), 10);
+        }
+      }
+    });
+
+    // =============== ИНИЦИАЛИЗАЦИЯ ДАННЫХ ===============
+    function initializeDefaultData() {
+      // Проверяем, существуют ли сотрудники
+      db.ref('employees/kirill').once('value').then(snapshot => {
+        if (!snapshot.exists()) {
+          db.ref('employees').set({
+            kirill: { password: "1265" },
+            ekaterina: { password: "0506" }
+          });
+        }
+      });
+
+      // Проверяем тарифы
+      db.ref('tariffs/tariff_001').once('value').then(snapshot => {
+        if (!snapshot.exists()) {
+          db.ref('tariffs').set({
+            tariff_001: { name: "Тарифище", price: 1000 },
+            tariff_002: { name: "Мало", price: 250 },
+            tariff_003: { name: "Любимый", price: 2000 },
+            tariff_004: { name: "Мобайл", price: 10000 }
+          });
+        }
+      });
+
+      // Добавляем тестовые номера, если нет
+      db.ref('availableNumbers/79123456780').once('value').then(snapshot => {
+        if (!snapshot.exists()) {
+          const testNumbers = {};
+          for (let i = 0; i < 10; i++) {
+            testNumbers[`7912345678${i}`] = true;
+          }
+          db.ref('availableNumbers').set(testNumbers);
+        }
+      });
+    }
+
+    // Запускаем инициализацию при загрузке
+    window.addEventListener('load', initializeDefaultData);
+  </script>
+</body>
+</html>
