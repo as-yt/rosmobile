@@ -402,7 +402,7 @@
   <script>
     // =============== ИНИЦИАЛИЗАЦИЯ FIREBASE ===============
     const firebaseConfig = {
-      apiKey: "AIzaSyC...", // ЗАМЕНИ НА СВОЙ API KEY ИЗ FIREBASE CONSOLE
+      apiKey: "AIzaSyC...", // ←←← ЗАМЕНИТЕ НА СВОЙ API KEY ИЗ FIREBASE CONSOLE
       authDomain: "renessans-bank-3df94.firebaseapp.com",
       databaseURL: "https://renessans-bank-3df94-default-rtdb.europe-west1.firebasedatabase.app",
       storageBucket: "renessans-bank-3df94.appspot.com"
@@ -430,7 +430,7 @@
     // =============== ФУНКЦИИ АВТОРИЗАЦИИ ===============
     function handleLogin() {
       const employeeId = document.getElementById('employeeSelect').value;
-      const password = document.getElementById('passwordInput').value;
+      const password = document.getElementById('passwordInput').value.trim();
       const errorDiv = document.getElementById('loginErrorMessage');
 
       if (!employeeId || !password) {
@@ -441,18 +441,19 @@
       db.ref('employees/' + employeeId).once('value')
         .then(snapshot => {
           const employee = snapshot.val();
-          if (employee && employee.password === password) {
+          if (employee && employee.password && employee.password === password) {
             currentEmployee = employeeId;
             document.getElementById('loginScreen').classList.remove('active');
             document.getElementById('mainScreen').classList.add('active');
-            console.log(`Вошёл сотрудник: ${employeeId}`);
+            console.log(`✅ Вошёл сотрудник: ${employeeId}`);
           } else {
             showError(errorDiv, "Неверный пароль. Попробуйте снова.");
           }
         })
         .catch(error => {
           console.error("Ошибка входа:", error);
-          showError(errorDiv, "Ошибка подключения. Повторите попытку.");
+          console.error("Подробности:", error.message);
+          showError(errorDiv, "Ошибка подключения к базе. Проверьте интернет и правила Firebase.");
         });
     }
 
@@ -463,6 +464,58 @@
 
     function hideError(element) {
       element.classList.add('hidden');
+    }
+
+    // =============== ИНИЦИАЛИЗАЦИЯ ДАННЫХ ===============
+    function initializeDefaultData() {
+      // Создаём сотрудников, если их нет
+      db.ref('employees/kirill').once('value').then(snapshot => {
+        if (!snapshot.exists()) {
+          db.ref('employees').set({
+            kirill: { password: "1265" },
+            ekaterina: { password: "5050" }
+          });
+          console.log("✅ Созданы дефолтные сотрудники");
+        }
+      });
+
+      // Тарифы
+      db.ref('tariffs/tariff_001').once('value').then(snapshot => {
+        if (!snapshot.exists()) {
+          db.ref('tariffs').set({
+            tariff_001: { name: "Тарифище", price: 1000 },
+            tariff_002: { name: "Мало", price: 250 },
+            tariff_003: { name: "Любимый", price: 2000 },
+            tariff_004: { name: "Мобайл", price: 10000 }
+          });
+          console.log("✅ Созданы тарифы");
+        }
+      });
+
+      // Свободные номера
+      db.ref('availableNumbers/79123456780').once('value').then(snapshot => {
+        if (!snapshot.exists()) {
+          const testNumbers = {};
+          for (let i = 0; i < 10; i++) {
+            testNumbers[`7912345678${i}`] = true;
+          }
+          db.ref('availableNumbers').set(testNumbers);
+          console.log("✅ Созданы тестовые номера");
+        }
+      });
+
+      // SIM-карты (заготовки)
+      db.ref('simStock/SIM12345678901').once('value').then(snapshot => {
+        if (!snapshot.exists()) {
+          const simStock = {};
+          for (let i = 1; i <= 20; i++) {
+            const code = `SIM${String(12345678900 + i).padStart(10, '0')}`;
+            simStock[code] = { status: 'available', createdAt: firebase.database.ServerValue.TIMESTAMP };
+          }
+          db.ref('simStock').set(simStock);
+          console.log("✅ Созданы SIM-карты в stock");
+        }
+      });
     }
 
     // =============== ФУНКЦИИ РАБОТЫ С КЛИЕНТОМ ===============
@@ -485,7 +538,7 @@
             const clientId = Object.keys(clients)[0];
             currentClientId = clientId;
             currentClientData = clients[clientId];
-            console.log("Клиент найден:", currentClientId);
+            console.log("✅ Клиент найден:", currentClientId);
             showStep('passportStep');
           } else {
             currentClientId = 'client_' + Date.now();
@@ -607,7 +660,7 @@
             assignedPhoneNumber = number;
             document.getElementById('assignedPhoneNumber').value = number;
             db.ref('availableNumbers/' + number).set(false);
-            console.log("Назначен номер:", number);
+            console.log("✅ Назначен номер:", number);
           } else {
             alert("Нет свободных номеров! Обратитесь к администратору.");
           }
@@ -688,7 +741,6 @@
         change = cashGiven - amount;
       }
 
-      // Сохраняем SIM-карту
       const simData = {
         clientId: currentClientId,
         phoneNumber: assignedPhoneNumber,
@@ -749,7 +801,6 @@ ${document.getElementById('paymentMethodSelector').value === 'cash' ? `Внес�
       steps.forEach(id => document.getElementById(id).classList.add('hidden'));
       document.getElementById(stepId).classList.remove('hidden');
       
-      // Обновляем индикатор шагов
       const stepMap = {
         'clientStep': 'client',
         'passportStep': 'passport',
@@ -798,43 +849,7 @@ ${document.getElementById('paymentMethodSelector').value === 'cash' ? `Внес�
       }
     });
 
-    // =============== ИНИЦИАЛИЗАЦИЯ ДАННЫХ ===============
-    function initializeDefaultData() {
-      // Проверяем, существуют ли сотрудники
-      db.ref('employees/kirill').once('value').then(snapshot => {
-        if (!snapshot.exists()) {
-          db.ref('employees').set({
-            kirill: { password: "1265" },
-            ekaterina: { password: "5050" }
-          });
-        }
-      });
-
-      // Проверяем тарифы
-      db.ref('tariffs/tariff_001').once('value').then(snapshot => {
-        if (!snapshot.exists()) {
-          db.ref('tariffs').set({
-            tariff_001: { name: "Тарифище", price: 1000 },
-            tariff_002: { name: "Мало", price: 250 },
-            tariff_003: { name: "Любимый", price: 2000 },
-            tariff_004: { name: "Мобайл", price: 10000 }
-          });
-        }
-      });
-
-      // Добавляем тестовые номера, если нет
-      db.ref('availableNumbers/79123456780').once('value').then(snapshot => {
-        if (!snapshot.exists()) {
-          const testNumbers = {};
-          for (let i = 0; i < 10; i++) {
-            testNumbers[`7912345678${i}`] = true;
-          }
-          db.ref('availableNumbers').set(testNumbers);
-        }
-      });
-    }
-
-    // Запускаем инициализацию при загрузке
+    // =============== ЗАПУСК ИНИЦИАЛИЗАЦИИ ===============
     window.addEventListener('load', initializeDefaultData);
   </script>
 </body>
